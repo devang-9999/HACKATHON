@@ -13,10 +13,7 @@ export class OrdersService {
   constructor(private gateway: OrdersGateway) {}
 
   private orderRepo = AppDataSource.getRepository(Order);
-  private outboxRepo = AppDataSource.getRepository(OutboxEvent);
   private inboxRepo = AppDataSource.getRepository(InboxEvent);
-
-
 
   async createOrder(customerId: string, totalAmount: number) {
     return AppDataSource.transaction(async (manager) => {
@@ -39,8 +36,6 @@ export class OrdersService {
     });
   }
 
-
-
   async getOrder(orderId: string) {
     return this.orderRepo.findOneBy({ id: orderId });
   }
@@ -48,8 +43,6 @@ export class OrdersService {
   async getAllOrders() {
     return this.orderRepo.find();
   }
-
-
 
   async handleOrderBilled(event: any) {
     await this.processEvent(event.id, async () => {
@@ -81,11 +74,9 @@ export class OrdersService {
     });
   }
 
-
-
   private async processEvent(eventId: string, handler: () => Promise<void>) {
     const exists = await this.inboxRepo.findOneBy({ eventId });
-    if (exists) return; // already processed
+    if (exists) return;
 
     await AppDataSource.transaction(async (manager) => {
       await handler();
@@ -93,8 +84,6 @@ export class OrdersService {
       await manager.save(InboxEvent, { eventId });
     });
   }
-
-
 
   private async updateStatus(orderId: string, newStatus: OrderStatus) {
     const order = await this.orderRepo.findOneBy({ id: orderId });
@@ -108,7 +97,7 @@ export class OrdersService {
     order.status = newStatus;
     await this.orderRepo.save(order);
 
-    this.gateway.orderCreated(order); // notify change
+    this.gateway.orderCreated(order);
   }
 
   private isValidTransition(current: OrderStatus, next: OrderStatus): boolean {
@@ -123,7 +112,6 @@ export class OrdersService {
 
     return transitions[current].includes(next);
   }
-
 
   async resetDatabase() {
     await AppDataSource.query('TRUNCATE orders CASCADE');

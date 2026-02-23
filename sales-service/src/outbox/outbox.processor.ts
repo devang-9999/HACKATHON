@@ -21,7 +21,7 @@ export class OutboxProcessor implements OnModuleInit {
     });
 
     for (const event of events) {
-      await this.publisher.publish(event.type, event.payload);
+      this.publisher.publish(event.type, event.payload);
 
       event.processed = true;
       await repo.save(event);

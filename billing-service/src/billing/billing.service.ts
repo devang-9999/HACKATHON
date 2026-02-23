@@ -14,7 +14,6 @@ import { OutboxEvent } from './outbox/outbox.entity';
 export class BillingService {
   constructor(private readonly dataSource: DataSource) {}
 
-
   private async writeOutbox(
     manager: EntityManager,
     eventType: string,
@@ -29,11 +28,9 @@ export class BillingService {
     );
   }
 
-
   async processEvent(routingKey: string, payload: any): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const inboxRepo = manager.getRepository(InboxEvent);
-
 
       const exists = await inboxRepo.findOne({
         where: { eventId: payload.eventId },
@@ -44,7 +41,6 @@ export class BillingService {
         return;
       }
 
-
       if (routingKey === 'order.created') {
         await this.handleOrderCreatedTx(manager, payload);
       }
@@ -53,14 +49,12 @@ export class BillingService {
         await this.handleRefundRequestedTx(manager, payload);
       }
 
-
       await inboxRepo.save({
         eventId: payload.eventId,
         eventType: routingKey,
       });
     });
   }
-
 
   private async handleOrderCreatedTx(manager: EntityManager, event: any) {
     const { orderId, customerId, totalAmount } = event;
@@ -119,7 +113,6 @@ export class BillingService {
 
     console.log(' Payment successful');
   }
-
 
   private async handleRefundRequestedTx(manager: EntityManager, event: any) {
     const { orderId } = event;
@@ -183,6 +176,6 @@ export class BillingService {
       amount: payment.amount,
     });
 
-    console.log('💸 Refund completed successfully');
+    console.log('Refund completed successfully');
   }
 }

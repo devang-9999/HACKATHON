@@ -11,7 +11,6 @@ export class BillingController {
     private readonly dataSource: DataSource,
   ) {}
 
-
   @Get('accounts/:customerId')
   async getAccount(@Param('customerId') customerId: string) {
     const account = await this.dataSource
@@ -23,17 +22,15 @@ export class BillingController {
     return account;
   }
 
-
   @Post('refunds')
   async refund(@Body() dto: RefundDto) {
     await this.billingService.processEvent('order.refund.requested', {
-      eventId: crypto.randomUUID(), // important
+      eventId: crypto.randomUUID(),
       ...dto,
     });
 
     return { message: 'Refund processed' };
   }
-
 
   @Delete('reset')
   async reset() {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -13,16 +14,23 @@ export class RabbitMQService implements OnModuleInit {
   }
 
   private async init() {
-    const url = process.env.RABBITMQ_URL || 'amqp://localhost';
+    const url = process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672';
 
-    this.connection = await connect(url);
-    this.channel = await this.connection.createChannel();
+    while (true) {
+      try {
+        this.connection = await connect(url);
+        this.channel = await this.connection.createChannel();
 
-    await this.channel.prefetch(25);
+        await this.channel.prefetch(25);
 
-    console.log('RabbitMQ connected');
+        console.log('RabbitMQ connected (shipping)');
+        break;
+      } catch (err) {
+        console.log('RabbitMQ not ready (shipping), retrying in 5s...');
+        await new Promise((res) => setTimeout(res, 5000));
+      }
+    }
   }
-
   async publish(queue: string, message: any) {
     await this.channel.assertQueue(queue, { durable: true });
 

@@ -1,24 +1,53 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, OnModuleInit } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { rabbitConfig } from '../config/rabbitmq.config';
 
 @Injectable()
-export class RabbitPublisher implements OnModuleInit {
-  private channel: amqp.Channel;
+export class RabbitPublisher implements OnModuleInit, OnModuleDestroy {
+  private connection?: amqp.ChannelModel;
+  private channel?: amqp.Channel;
 
   async onModuleInit() {
-    const conn = await amqp.connect(rabbitConfig.url);
-    this.channel = await conn.createChannel();
-    await this.channel.assertExchange(rabbitConfig.exchange, 'topic', {
-      durable: true,
-    });
+    await this.startConnectionLoop();
   }
 
-  async publish(event: string, payload: any) {
-    await this.channel.publish(
+  async onModuleDestroy() {
+    await this.channel?.close().catch(() => {});
+    await this.connection?.close().catch(() => {});
+  }
+  private async startConnectionLoop() {
+    const url = rabbitConfig.url;
+
+    while (!this.channel) {
+      try {
+        console.log('⏳ Sales connecting to RabbitMQ...');
+
+        const conn = await amqp.connect(url);
+        const channel = await conn.createChannel();
+
+        await channel.assertExchange(rabbitConfig.exchange, 'topic', {
+          durable: true,
+        });
+
+        this.connection = conn;
+        this.channel = channel;
+
+        console.log('Sales RabbitMQ connected');
+      } catch (err) {
+        console.log('RabbitMQ not ready — retry in 5s');
+        await new Promise((res) => setTimeout(res, 5000));
+      }
+    }
+  }
+
+  publish(event: string, payload: any) {
+    if (!this.channel) {
+      console.warn('⚠ RabbitMQ not connected — event skipped');
+      return;
+    }
+
+    this.channel.publish(
       rabbitConfig.exchange,
       event,
       Buffer.from(JSON.stringify(payload)),

@@ -13,7 +13,6 @@ export class OutboxProcessor implements OnModuleInit {
   async onModuleInit() {
     await this.publisher.connect();
 
-    // run every 5 seconds
     setInterval(() => {
       this.processOutbox();
     }, 5000);
@@ -31,7 +30,7 @@ export class OutboxProcessor implements OnModuleInit {
 
     for (const event of events) {
       try {
-        await this.publisher.publish(event.eventType, event.payload);
+        this.publisher.publish(event.eventType, event.payload);
 
         event.processed = true;
         await repo.save(event);

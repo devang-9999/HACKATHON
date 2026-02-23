@@ -1,8 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as amqp from 'amqplib';
@@ -56,7 +52,7 @@ export class OrdersConsumer implements OnModuleInit {
       'order.refunded',
     );
 
-    this.channel.prefetch(25);
+    await this.channel.prefetch(25);
 
     await this.channel.consume(queue.queue, (msg) => this.handleMessage(msg), {
       noAck: false,
