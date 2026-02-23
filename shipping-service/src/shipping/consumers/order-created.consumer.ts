@@ -1,0 +1,44 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { RabbitMQService } from '../../messaging/rabbitmq/rabbitmq.service';
+import { InboxService } from '../../messaging/inbox/inbox.service';
+import { ShippingService } from '../service/shipping.service';
+
+@Injectable()
+export class OrderCreatedConsumer implements OnModuleInit {
+  constructor(
+    private readonly rabbitmq: RabbitMQService,
+    private readonly inbox: InboxService,
+    private readonly shippingService: ShippingService,
+  ) {}
+
+  async onModuleInit() {
+    await this.rabbitmq.subscribe(
+      'order.created',
+      this.handleMessage.bind(this),
+    );
+  }
+
+  private async handleMessage(message: any, rawMsg: any) {
+    const { eventId, payload } = message;
+
+    try {
+      // idempotency check
+      const alreadyProcessed = await this.inbox.isProcessed(eventId);
+      if (alreadyProcessed) {
+        this.rabbitmq.ack(rawMsg);
+        return;
+      }
+
+      await this.shippingService.handleOrderCreated(payload);
+
+      await this.inbox.markProcessed(eventId, 'order.created');
+
+      this.rabbitmq.ack(rawMsg);
+    } catch (err) {
+      console.error('order.created failed', err);
+      this.rabbitmq.nack(rawMsg);
+    }
+  }
+}

@@ -1,0 +1,92 @@
+version: "3.9"
+
+services:
+
+  # --------------------------------------------------
+  # SHIPPING SERVICE
+  # --------------------------------------------------
+  shipping-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: shipping-service
+    restart: always
+    ports:
+      - "3002:3000"
+    env_file:
+      - ../../.env
+    depends_on:
+      - shipping-db
+      - rabbitmq
+    networks:
+      - shipping-network
+
+
+  # --------------------------------------------------
+  # POSTGRESQL 16 (REQUIRED)
+  # --------------------------------------------------
+  shipping-db:
+    image: postgres:16
+    container_name: shipping-db
+    restart: always
+    environment:
+      POSTGRES_DB: shipping_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - shipping-db-data:/var/lib/postgresql/data
+    networks:
+      - shipping-network
+
+
+  # --------------------------------------------------
+  # RABBITMQ WITH UI
+  # --------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: shipping-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - shipping-network
+
+
+  # --------------------------------------------------
+  # PGADMIN (OPTIONAL BUT RECOMMENDED)
+  # --------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: shipping-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5052:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - shipping-network
+
+
+# --------------------------------------------------
+# NETWORK
+# --------------------------------------------------
+networks:
+  shipping-network:
+    driver: bridge
+
+
+# --------------------------------------------------
+# VOLUMES
+# --------------------------------------------------
+volumes:
+  shipping-db-data:
+  rabbitmq-data:
+  pgadmin-data:
