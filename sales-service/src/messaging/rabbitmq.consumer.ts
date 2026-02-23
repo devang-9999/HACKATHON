@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { Channel, ConsumeMessage } from 'amqplib';
@@ -15,48 +16,68 @@ export class OrdersConsumer implements OnModuleInit {
   constructor(private readonly ordersService: OrdersService) {}
 
   async onModuleInit(): Promise<void> {
-    const conn = await amqp.connect(rabbitConfig.url);
-    this.channel = await conn.createChannel();
+    await this.connectWithRetry();
+  }
 
-    await this.channel.assertExchange(rabbitConfig.exchange, 'topic', {
-      durable: true,
-    });
+  // ---------------------------------------
+  // RETRY LOOP (CRITICAL FIX)
+  // ---------------------------------------
+  private async connectWithRetry() {
+    while (!this.channel) {
+      try {
+        console.log('⏳ Sales consumer connecting to RabbitMQ...');
 
-    const queue = await this.channel.assertQueue('sales-service-queue', {
-      durable: true,
-    });
+        const conn = await amqp.connect(rabbitConfig.url);
+        this.channel = await conn.createChannel();
 
-    await this.channel.bindQueue(
-      queue.queue,
-      rabbitConfig.exchange,
-      'order.billed',
-    );
-    await this.channel.bindQueue(
-      queue.queue,
-      rabbitConfig.exchange,
-      'payment.failed',
-    );
-    await this.channel.bindQueue(
-      queue.queue,
-      rabbitConfig.exchange,
-      'shipping.created',
-    );
-    await this.channel.bindQueue(
-      queue.queue,
-      rabbitConfig.exchange,
-      'order.completed',
-    );
-    await this.channel.bindQueue(
-      queue.queue,
-      rabbitConfig.exchange,
-      'order.refunded',
-    );
+        await this.channel.assertExchange(rabbitConfig.exchange, 'topic', {
+          durable: true,
+        });
 
-    await this.channel.prefetch(25);
+        const queue = await this.channel.assertQueue('sales-service-queue', {
+          durable: true,
+        });
 
-    await this.channel.consume(queue.queue, (msg) => this.handleMessage(msg), {
-      noAck: false,
-    });
+        await this.channel.bindQueue(
+          queue.queue,
+          rabbitConfig.exchange,
+          'order.billed',
+        );
+        await this.channel.bindQueue(
+          queue.queue,
+          rabbitConfig.exchange,
+          'payment.failed',
+        );
+        await this.channel.bindQueue(
+          queue.queue,
+          rabbitConfig.exchange,
+          'shipping.created',
+        );
+        await this.channel.bindQueue(
+          queue.queue,
+          rabbitConfig.exchange,
+          'order.completed',
+        );
+        await this.channel.bindQueue(
+          queue.queue,
+          rabbitConfig.exchange,
+          'order.refunded',
+        );
+
+        await this.channel.prefetch(25);
+
+        await this.channel.consume(
+          queue.queue,
+          (msg) => this.handleMessage(msg),
+          { noAck: false },
+        );
+
+        console.log('Sales consumer connected');
+      } catch (err) {
+        console.log('RabbitMQ not ready — retry in 5s');
+        await new Promise((res) => setTimeout(res, 5000));
+      }
+    }
   }
 
   private async handleMessage(msg: ConsumeMessage | null): Promise<void> {
@@ -67,7 +88,7 @@ export class OrdersConsumer implements OnModuleInit {
     let data: OrderEvent;
 
     try {
-      data = JSON.parse(msg.content.toString()) as OrderEvent;
+      data = JSON.parse(msg.content.toString());
     } catch (err) {
       console.error('Invalid message JSON', err);
       this.channel.ack(msg);
