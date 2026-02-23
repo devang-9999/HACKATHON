@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 export function safeJsonParse<T = any>(
   value: string,
   fallback: T | null = null,

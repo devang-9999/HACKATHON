@@ -1,22 +1,21 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as amqp from 'amqplib';
+import { connect, Channel, ConsumeMessage } from 'amqplib';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit {
-  private connection: amqp.Connection;
-  private channel: amqp.Channel;
+  private connection!: Awaited<ReturnType<typeof connect>>;
+  private channel!: Channel;
 
   async onModuleInit() {
-    await this.connect();
+    await this.init();
   }
 
-  private async connect() {
+  private async init() {
     const url = process.env.RABBITMQ_URL || 'amqp://localhost';
 
-    this.connection = await amqp.connect(url);
+    this.connection = await connect(url);
     this.channel = await this.connection.createChannel();
 
     await this.channel.prefetch(25);
@@ -24,9 +23,6 @@ export class RabbitMQService implements OnModuleInit {
     console.log('RabbitMQ connected');
   }
 
-  // ------------------------------------------------
-  // publish event
-  // ------------------------------------------------
   async publish(queue: string, message: any) {
     await this.channel.assertQueue(queue, { durable: true });
 
@@ -35,29 +31,24 @@ export class RabbitMQService implements OnModuleInit {
     });
   }
 
-  // ------------------------------------------------
-  // subscribe to queue
-  // ------------------------------------------------
   async subscribe(
     queue: string,
-    handler: (msg: any, rawMsg: any) => Promise<void>,
+    handler: (msg: any, rawMsg: ConsumeMessage) => Promise<void>,
   ) {
     await this.channel.assertQueue(queue, { durable: true });
 
     await this.channel.consume(queue, async (msg) => {
       if (!msg) return;
-
       const content = JSON.parse(msg.content.toString());
-
       await handler(content, msg);
     });
   }
 
-  ack(msg: amqp.ConsumeMessage) {
+  ack(msg: ConsumeMessage) {
     this.channel.ack(msg);
   }
 
-  nack(msg: amqp.ConsumeMessage) {
+  nack(msg: ConsumeMessage) {
     this.channel.nack(msg);
   }
 }

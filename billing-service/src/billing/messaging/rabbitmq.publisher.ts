@@ -15,7 +15,7 @@ export class RabbitMQPublisher {
       durable: true,
     });
 
-    console.log('📤 RabbitMQ Publisher connected');
+    console.log(' RabbitMQ Publisher connected');
   }
 
   publish(routingKey: string, payload: unknown): void {

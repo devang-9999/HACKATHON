@@ -13,9 +13,6 @@ export class ShipmentLifecycleService {
     private shipmentRepo: Repository<ShipmentEntity>,
   ) {}
 
-  // ------------------------------------------------
-  // Create shipment entity
-  // ------------------------------------------------
   createShipmentEntity(orderId: string, items: any[]) {
     const shipment = new ShipmentEntity();
     shipment.orderId = orderId;
@@ -32,9 +29,6 @@ export class ShipmentLifecycleService {
     return shipment;
   }
 
-  // ------------------------------------------------
-  // Update status
-  // ------------------------------------------------
   async updateStatus(orderId: string, status: string) {
     const shipment = await this.shipmentRepo.findOne({
       where: { orderId },
@@ -45,14 +39,9 @@ export class ShipmentLifecycleService {
     shipment.status = status;
     await this.shipmentRepo.save(shipment);
 
-    // TODO publish order.completed when DELIVERED
-
     return shipment;
   }
 
-  // ------------------------------------------------
-  // Tracking generator
-  // ------------------------------------------------
   private generateTrackingNumber(): string {
     return 'TRK-' + Math.random().toString(36).substring(2, 12);
   }

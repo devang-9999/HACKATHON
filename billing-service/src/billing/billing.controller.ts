@@ -11,11 +11,7 @@ export class BillingController {
     private readonly dataSource: DataSource,
   ) {}
 
-  /*
-   ===============================
-   GET ACCOUNT
-   ===============================
-  */
+
   @Get('accounts/:customerId')
   async getAccount(@Param('customerId') customerId: string) {
     const account = await this.dataSource
@@ -27,11 +23,7 @@ export class BillingController {
     return account;
   }
 
-  /*
-   ===============================
-   MANUAL REFUND (EVENT SIMULATION)
-   ===============================
-  */
+
   @Post('refunds')
   async refund(@Body() dto: RefundDto) {
     await this.billingService.processEvent('order.refund.requested', {
@@ -42,11 +34,7 @@ export class BillingController {
     return { message: 'Refund processed' };
   }
 
-  /*
-   ===============================
-   RESET DATABASE
-   ===============================
-  */
+
   @Delete('reset')
   async reset() {
     const entities = this.dataSource.entityMetadatas;
@@ -59,11 +47,6 @@ export class BillingController {
     return { message: 'Billing database cleared' };
   }
 
-  /*
-   ===============================
-   SEED ACCOUNT
-   ===============================
-  */
   @Post('accounts/seed')
   async seedAccount(@Body() body: { customerId: string; balance: number }) {
     const repo = this.dataSource.getRepository(Account);

@@ -6,7 +6,7 @@ import { AppDataSource } from './config/datasource';
 async function bootstrap() {
   try {
     await AppDataSource.initialize();
-    console.log('✅ Database connected successfully');
+    console.log('Database connected successfully');
 
     const app = await NestFactory.create(AppModule);
 
@@ -23,7 +23,7 @@ async function bootstrap() {
 
     console.log(`🚀 Billing Service running on port ${port}`);
   } catch (error) {
-    console.error('❌ Failed to start Billing Service');
+    console.error(' Failed to start Billing Service');
     console.error(error);
     process.exit(1);
   }

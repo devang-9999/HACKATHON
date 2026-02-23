@@ -14,11 +14,7 @@ import { OutboxEvent } from './outbox/outbox.entity';
 export class BillingService {
   constructor(private readonly dataSource: DataSource) {}
 
-  /*
-   ============================================================
-   OUTBOX WRITER
-   ============================================================
-  */
+
   private async writeOutbox(
     manager: EntityManager,
     eventType: string,
@@ -33,18 +29,12 @@ export class BillingService {
     );
   }
 
-  /*
-   ============================================================
-   MASTER EVENT HANDLER (ATOMIC)
-   ============================================================
-  */
+
   async processEvent(routingKey: string, payload: any): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const inboxRepo = manager.getRepository(InboxEvent);
 
-      // ==============================
-      // IDEMPOTENCY CHECK
-      // ==============================
+
       const exists = await inboxRepo.findOne({
         where: { eventId: payload.eventId },
       });
@@ -54,9 +44,7 @@ export class BillingService {
         return;
       }
 
-      // ==============================
-      // ROUTE EVENT
-      // ==============================
+
       if (routingKey === 'order.created') {
         await this.handleOrderCreatedTx(manager, payload);
       }
@@ -65,9 +53,7 @@ export class BillingService {
         await this.handleRefundRequestedTx(manager, payload);
       }
 
-      // ==============================
-      // MARK EVENT PROCESSED
-      // ==============================
+
       await inboxRepo.save({
         eventId: payload.eventId,
         eventType: routingKey,
@@ -75,11 +61,7 @@ export class BillingService {
     });
   }
 
-  /*
-   ============================================================
-   ORDER CREATED
-   ============================================================
-  */
+
   private async handleOrderCreatedTx(manager: EntityManager, event: any) {
     const { orderId, customerId, totalAmount } = event;
 
@@ -111,7 +93,7 @@ export class BillingService {
         amount: totalAmount,
       });
 
-      console.log('❌ Payment failed');
+      console.log(' Payment failed');
       return;
     }
 
@@ -135,34 +117,24 @@ export class BillingService {
       amount: totalAmount,
     });
 
-    console.log('✅ Payment successful');
+    console.log(' Payment successful');
   }
 
-  /*
-   ============================================================
-   REFUND
-   ============================================================
-  */
+
   private async handleRefundRequestedTx(manager: EntityManager, event: any) {
     const { orderId } = event;
 
-    console.log('🔄 Refund requested for order:', orderId);
+    console.log('Refund requested for order:', orderId);
 
-    // ==============================
-    // FIND PAYMENT
-    // ==============================
     const payment = await manager.findOne(Payment, {
       where: { orderId },
       lock: { mode: 'pessimistic_write' },
     });
 
     if (!payment) {
-      throw new Error(`❌ Payment not found for order ${orderId}`);
+      throw new Error(` Payment not found for order ${orderId}`);
     }
 
-    // ==============================
-    // PREVENT DOUBLE REFUND
-    // ==============================
     if (payment.status === PaymentStatus.REFUNDED) {
       console.log('⚠ Payment already refunded:', orderId);
       return;
@@ -170,25 +142,19 @@ export class BillingService {
 
     if (payment.status !== PaymentStatus.SUCCESS) {
       throw new Error(
-        `❌ Payment not eligible for refund. Status = ${payment.status}`,
+        `Payment not eligible for refund. Status = ${payment.status}`,
       );
     }
 
-    // ==============================
-    // FIND ACCOUNT
-    // ==============================
     const account = await manager.findOne(Account, {
       where: { id: payment.accountId },
       lock: { mode: 'pessimistic_write' },
     });
 
     if (!account) {
-      throw new Error(`❌ Account not found for payment ${payment.accountId}`);
+      throw new Error(`Account not found for payment ${payment.accountId}`);
     }
 
-    // ==============================
-    // UPDATE BALANCE
-    // ==============================
     const oldBalance = Number(account.balance);
     const refundAmount = Number(payment.amount);
 
@@ -196,17 +162,11 @@ export class BillingService {
 
     await manager.save(account);
 
-    console.log(`💰 Balance updated: ${oldBalance} → ${account.balance}`);
+    console.log(` Balance updated: ${oldBalance} → ${account.balance}`);
 
-    // ==============================
-    // UPDATE PAYMENT STATUS
-    // ==============================
     payment.status = PaymentStatus.REFUNDED;
     await manager.save(payment);
 
-    // ==============================
-    // CREATE REFUND RECORD
-    // ==============================
     await manager.save(
       manager.create(Refund, {
         orderId,
@@ -216,9 +176,6 @@ export class BillingService {
       }),
     );
 
-    // ==============================
-    // WRITE OUTBOX EVENT
-    // ==============================
     await this.writeOutbox(manager, 'order.refunded', {
       eventId: crypto.randomUUID(),
       orderId,

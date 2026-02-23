@@ -20,7 +20,7 @@ export class OutboxService {
   }
 
   async getUnprocessedEvents(): Promise<OutboxEntity[]> {
-    return this.outboxRepo.find({
+    return await this.outboxRepo.find({
       where: { processed: false },
       order: { createdAt: 'ASC' },
       take: 100,

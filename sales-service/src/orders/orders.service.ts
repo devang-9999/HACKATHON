@@ -16,9 +16,7 @@ export class OrdersService {
   private outboxRepo = AppDataSource.getRepository(OutboxEvent);
   private inboxRepo = AppDataSource.getRepository(InboxEvent);
 
-  /* =======================================================
-     ORDER CREATION
-  ======================================================= */
+
 
   async createOrder(customerId: string, totalAmount: number) {
     return AppDataSource.transaction(async (manager) => {
@@ -41,9 +39,7 @@ export class OrdersService {
     });
   }
 
-  /* =======================================================
-     QUERIES
-  ======================================================= */
+
 
   async getOrder(orderId: string) {
     return this.orderRepo.findOneBy({ id: orderId });
@@ -53,9 +49,7 @@ export class OrdersService {
     return this.orderRepo.find();
   }
 
-  /* =======================================================
-     EVENT HANDLING (INCOMING EVENTS FROM OTHER SERVICES)
-  ======================================================= */
+
 
   async handleOrderBilled(event: any) {
     await this.processEvent(event.id, async () => {
@@ -87,9 +81,7 @@ export class OrdersService {
     });
   }
 
-  /* =======================================================
-     INBOX PROCESSING (IDEMPOTENT EVENT HANDLING)
-  ======================================================= */
+
 
   private async processEvent(eventId: string, handler: () => Promise<void>) {
     const exists = await this.inboxRepo.findOneBy({ eventId });
@@ -102,9 +94,7 @@ export class OrdersService {
     });
   }
 
-  /* =======================================================
-     ORDER STATUS MANAGEMENT
-  ======================================================= */
+
 
   private async updateStatus(orderId: string, newStatus: OrderStatus) {
     const order = await this.orderRepo.findOneBy({ id: orderId });
@@ -134,9 +124,6 @@ export class OrdersService {
     return transitions[current].includes(next);
   }
 
-  /* =======================================================
-     ADMIN FUNCTION
-  ======================================================= */
 
   async resetDatabase() {
     await AppDataSource.query('TRUNCATE orders CASCADE');

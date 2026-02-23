@@ -1,9 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { InventoryEntity } from '../entities/inventory.entity';
+
+type InventorySeedItem = {
+  productId: string;
+  quantity: number;
+};
 
 @Injectable()
 export class InventoryService {
@@ -12,10 +15,7 @@ export class InventoryService {
     private inventoryRepo: Repository<InventoryEntity>,
   ) {}
 
-  // ------------------------------------------------
-  // Reserve stock (WITH LOCKING)
-  // ------------------------------------------------
-  async reserveStock(items: any[], manager: EntityManager) {
+  async reserveStock(items: InventorySeedItem[], manager: EntityManager) {
     for (const item of items) {
       const inventory = await manager.findOne(InventoryEntity, {
         where: { productId: item.productId },
@@ -36,17 +36,17 @@ export class InventoryService {
     }
   }
 
-  // ------------------------------------------------
-  // Seed inventory
-  // ------------------------------------------------
-  async seedInventory(items: any[]) {
+  async seedInventory(items: InventorySeedItem[]) {
     for (const item of items) {
       let inventory = await this.inventoryRepo.findOne({
         where: { productId: item.productId },
       });
 
       if (!inventory) {
-        inventory = this.inventoryRepo.create(item);
+        inventory = this.inventoryRepo.create({
+          productId: item.productId,
+          quantityAvailable: item.quantity,
+        });
       } else {
         inventory.quantityAvailable = item.quantity;
       }

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,7 +13,6 @@ export class InboxService {
     private inboxRepo: Repository<InboxEntity>,
   ) {}
 
-  // check if already processed
   async isProcessed(eventId: string): Promise<boolean> {
     const existing = await this.inboxRepo.findOne({
       where: { eventId },
@@ -18,7 +20,6 @@ export class InboxService {
     return !!existing;
   }
 
-  // mark processed
   async markProcessed(eventId: string, eventType: string) {
     const record = this.inboxRepo.create({
       eventId,

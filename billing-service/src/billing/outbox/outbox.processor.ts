@@ -18,7 +18,7 @@ export class OutboxProcessor implements OnModuleInit {
       this.processOutbox();
     }, 5000);
 
-    console.log('📦 Outbox processor started');
+    console.log('Outbox processor started');
   }
 
   async processOutbox() {
@@ -36,9 +36,9 @@ export class OutboxProcessor implements OnModuleInit {
         event.processed = true;
         await repo.save(event);
 
-        console.log(`✅ Outbox event published ${event.id}`);
+        console.log(` Outbox event published ${event.id}`);
       } catch (err) {
-        console.error('❌ Outbox publish failed', err);
+        console.error(' Outbox publish failed', err);
       }
     }
   }

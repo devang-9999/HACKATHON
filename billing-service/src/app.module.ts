@@ -11,7 +11,6 @@ import { InboxEvent } from './billing/inbox/inbox.entity';
 
 @Module({
   imports: [
-    // 🔥 ROOT DATABASE CONNECTION
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -25,7 +24,6 @@ import { InboxEvent } from './billing/inbox/inbox.entity';
       logging: true,
     }),
 
-    // domain modules
     BillingModule,
   ],
   controllers: [HealthController],

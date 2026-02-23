@@ -6,9 +6,6 @@ import { v4 as uuid } from 'uuid';
 export class ShippingPublisher {
   constructor(private readonly outbox: OutboxService) {}
 
-  // ------------------------------------------------
-  // SHIPPING CREATED
-  // ------------------------------------------------
   async publishShippingCreated(data: {
     orderId: string;
     trackingNumber: string;
@@ -20,9 +17,6 @@ export class ShippingPublisher {
     });
   }
 
-  // ------------------------------------------------
-  // SHIPPING FAILED
-  // ------------------------------------------------
   async publishShippingFailed(data: { orderId: string; reason: string }) {
     await this.outbox.saveEvent({
       eventId: uuid(),
@@ -31,9 +25,6 @@ export class ShippingPublisher {
     });
   }
 
-  // ------------------------------------------------
-  // ORDER COMPLETED
-  // ------------------------------------------------
   async publishOrderCompleted(data: { orderId: string }) {
     await this.outbox.saveEvent({
       eventId: uuid(),

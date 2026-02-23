@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('processed_orders')

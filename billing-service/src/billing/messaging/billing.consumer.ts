@@ -39,7 +39,7 @@ export class BillingConsumer {
 
     await this.channel.prefetch(25);
 
-    console.log('📥 Billing consumer started');
+    console.log(' Billing consumer started');
 
     await this.channel.consume(q.queue, async (msg: ConsumeMessage | null) => {
       if (!msg || !this.channel) return;
@@ -52,7 +52,7 @@ export class BillingConsumer {
 
         this.channel.ack(msg);
       } catch (err) {
-        console.error('❌ Billing event failed', err);
+        console.error(' Billing event failed', err);
         this.channel.nack(msg, false, false);
       }
     });

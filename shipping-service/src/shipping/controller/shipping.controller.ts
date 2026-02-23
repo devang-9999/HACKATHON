@@ -6,17 +6,11 @@ import { ShippingService } from '../service/shipping.service';
 export class ShippingController {
   constructor(private readonly shippingService: ShippingService) {}
 
-  // ------------------------------------------------
-  // Get shipment by orderId
-  // ------------------------------------------------
   @Get('shipments/:orderId')
   async getShipment(@Param('orderId') orderId: string) {
     return this.shippingService.getShipmentByOrderId(orderId);
   }
 
-  // ------------------------------------------------
-  // Seed inventory (for testing)
-  // ------------------------------------------------
   @Post('inventory/seed')
   async seedInventory(
     @Body()
@@ -28,9 +22,6 @@ export class ShippingController {
     return this.shippingService.seedInventory(items);
   }
 
-  // ------------------------------------------------
-  // Update shipment status (simulate delivery)
-  // ------------------------------------------------
   @Patch('shipments/:orderId/status')
   async updateShipmentStatus(
     @Param('orderId') orderId: string,
