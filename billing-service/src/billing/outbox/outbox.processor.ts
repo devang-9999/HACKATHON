@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { OutboxEvent } from './outbox.entity';
@@ -13,8 +14,8 @@ export class OutboxProcessor implements OnModuleInit {
   async onModuleInit() {
     await this.publisher.connect();
 
-    setInterval(() => {
-      this.processOutbox();
+    setInterval(async () => {
+      await this.processOutbox();
     }, 5000);
 
     console.log('Outbox processor started');
@@ -30,14 +31,17 @@ export class OutboxProcessor implements OnModuleInit {
 
     for (const event of events) {
       try {
-        this.publisher.publish(event.eventType, event.payload);
+        this.publisher.publish(event.eventType, {
+          eventId: event.id,
+          payload: event.payload,
+        });
 
         event.processed = true;
         await repo.save(event);
 
-        console.log(` Outbox event published ${event.id}`);
+        console.log(`✅ Outbox event published ${event.id}`);
       } catch (err) {
-        console.error(' Outbox publish failed', err);
+        console.error('❌ Outbox publish failed', err);
       }
     }
   }

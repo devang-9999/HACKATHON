@@ -1,4 +1,4 @@
 export interface OrderEvent {
-  id: string;
+  eventId: string;
   orderId: string;
 }

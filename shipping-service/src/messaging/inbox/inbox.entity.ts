@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+// inbox.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,

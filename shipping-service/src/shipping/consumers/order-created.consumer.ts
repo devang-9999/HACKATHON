@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { RabbitMQService } from '../../messaging/rabbitmq/rabbitmq.service';
 import { InboxService } from '../../messaging/inbox/inbox.service';
@@ -24,7 +24,6 @@ export class OrderCreatedConsumer implements OnModuleInit {
     const { eventId, payload } = message;
 
     try {
-      // idempotency check
       const alreadyProcessed = await this.inbox.isProcessed(eventId);
       if (alreadyProcessed) {
         this.rabbitmq.ack(rawMsg);

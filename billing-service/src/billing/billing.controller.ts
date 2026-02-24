@@ -1,6 +1,9 @@
+// src/billing/billing.controller.ts
 import { Controller, Get, Param, Post, Body, Delete } from '@nestjs/common';
-import { BillingService } from './billing.service';
 import { DataSource } from 'typeorm';
+import * as crypto from 'crypto';
+
+import { BillingService } from './billing.service';
 import { Account } from './entities/account.entity';
 import { RefundDto } from './dto/redund.dto';
 
@@ -51,7 +54,6 @@ export class BillingController {
     const existing = await repo.findOne({
       where: { customerId: body.customerId },
     });
-
     if (existing) return existing;
 
     const account = repo.create(body);

@@ -14,12 +14,7 @@ export class Account {
   @Column({ unique: true })
   customerId: string;
 
-  @Column({
-    type: 'numeric',
-    precision: 12,
-    scale: 2,
-    default: 0,
-  })
+  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
   balance: number;
 
   @CreateDateColumn()

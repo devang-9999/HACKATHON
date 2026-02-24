@@ -31,9 +31,9 @@ export class RabbitMQService implements OnModuleInit {
       }
     }
   }
+
   async publish(queue: string, message: any) {
     await this.channel.assertQueue(queue, { durable: true });
-
     this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)), {
       persistent: true,
     });

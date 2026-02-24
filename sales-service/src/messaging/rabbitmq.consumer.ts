@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { Channel, ConsumeMessage } from 'amqplib';
@@ -21,7 +23,7 @@ export class OrdersConsumer implements OnModuleInit {
   private async connectWithRetry() {
     while (!this.channel) {
       try {
-        console.log(' Sales consumer connecting to RabbitMQ...');
+        console.log('Sales consumer connecting to RabbitMQ...');
 
         const conn = await amqp.connect(rabbitConfig.url);
         this.channel = await conn.createChannel();
@@ -34,31 +36,17 @@ export class OrdersConsumer implements OnModuleInit {
           durable: true,
         });
 
-        await this.channel.bindQueue(
-          queue.queue,
-          rabbitConfig.exchange,
+        const bindings = [
           'order.billed',
-        );
-        await this.channel.bindQueue(
-          queue.queue,
-          rabbitConfig.exchange,
           'payment.failed',
-        );
-        await this.channel.bindQueue(
-          queue.queue,
-          rabbitConfig.exchange,
           'shipping.created',
-        );
-        await this.channel.bindQueue(
-          queue.queue,
-          rabbitConfig.exchange,
           'order.completed',
-        );
-        await this.channel.bindQueue(
-          queue.queue,
-          rabbitConfig.exchange,
           'order.refunded',
-        );
+        ];
+
+        for (const key of bindings) {
+          await this.channel.bindQueue(queue.queue, rabbitConfig.exchange, key);
+        }
 
         await this.channel.prefetch(25);
 
@@ -81,17 +69,14 @@ export class OrdersConsumer implements OnModuleInit {
 
     const routingKey = msg.fields.routingKey;
 
-    let data: OrderEvent;
-
     try {
-      data = JSON.parse(msg.content.toString());
-    } catch (err) {
-      console.error('Invalid message JSON', err);
-      this.channel.ack(msg);
-      return;
-    }
+      const message = JSON.parse(msg.content.toString());
 
-    try {
+      const data: OrderEvent = {
+        eventId: message.eventId,
+        orderId: message.payload.orderId,
+      };
+
       switch (routingKey) {
         case 'order.billed':
           await this.ordersService.handleOrderBilled(data);
@@ -113,6 +98,7 @@ export class OrdersConsumer implements OnModuleInit {
       this.channel.ack(msg);
     } catch (err) {
       console.error('EVENT PROCESSING FAILED', err);
+      this.channel.nack(msg, false, true); // requeue on failure
     }
   }
 }

@@ -5,6 +5,9 @@ import { rabbitConfig } from '../config/rabbitmq.config';
 
 @Injectable()
 export class RabbitPublisher implements OnModuleInit, OnModuleDestroy {
+  connect() {
+    throw new Error('Method not implemented.');
+  }
   private connection?: amqp.ChannelModel;
   private channel?: amqp.Channel;
 

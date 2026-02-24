@@ -1,17 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { connect, Channel, ChannelModel } from 'amqplib';
-import { rabbitmqConfig } from 'src/config/rabbitmq.config';
+import { rabbitmqConfig } from '../../config/rabbitmq.config';
 
-export class RabbitMQPublisher {
+@Injectable()
+export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
   private connection?: ChannelModel;
   private channel?: Channel;
+
+  async onModuleInit() {
+    await this.connect();
+  }
+
+  async onModuleDestroy() {
+    await this.close();
+  }
 
   async connect(): Promise<void> {
     if (this.connection && this.channel) return;
 
     const url = rabbitmqConfig.url;
 
-    while (true) {
+    while (!this.channel) {
       try {
         this.connection = await connect(url);
         this.channel = await this.connection.createChannel();
@@ -20,8 +30,7 @@ export class RabbitMQPublisher {
           durable: true,
         });
 
-        console.log('Billing RabbitMQ Publisher connected');
-        break;
+        console.log('Billing RabbitMQ Publisher connected ✅');
       } catch (err) {
         console.log('Billing waiting for RabbitMQ... retry in 5s');
         await new Promise((res) => setTimeout(res, 5000));
@@ -31,7 +40,8 @@ export class RabbitMQPublisher {
 
   publish(routingKey: string, payload: unknown): void {
     if (!this.channel) {
-      throw new Error('RabbitMQ channel not initialized');
+      console.warn('⚠ RabbitMQ not connected — event skipped');
+      return;
     }
 
     const message = Buffer.from(JSON.stringify(payload));
@@ -42,7 +52,7 @@ export class RabbitMQPublisher {
   }
 
   async close(): Promise<void> {
-    await this.channel?.close();
-    await this.connection?.close();
+    await this.channel?.close().catch(() => {});
+    await this.connection?.close().catch(() => {});
   }
 }

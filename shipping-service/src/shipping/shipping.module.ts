@@ -13,7 +13,6 @@ import { ProcessedOrderEntity } from './entities/processed-order.entity';
 
 import { OrderCreatedConsumer } from './consumers/order-created.consumer';
 import { OrderBilledConsumer } from './consumers/order-billed.consumer';
-import { DeliveryUpdateConsumer } from './consumers/delivery-update.consumer';
 
 import { ShippingPublisher } from './publishers/shipping.publisher';
 
@@ -50,7 +49,6 @@ import { ShipmentLifecycleService } from './service/shipment-lifecycle';
 
     OrderCreatedConsumer,
     OrderBilledConsumer,
-    DeliveryUpdateConsumer,
   ],
 
   exports: [ShippingService],

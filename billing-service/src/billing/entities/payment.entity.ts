@@ -25,17 +25,10 @@ export class Payment {
   @Column()
   accountId: string;
 
-  @Column({
-    type: 'numeric',
-    precision: 12,
-    scale: 2,
-  })
+  @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
 
-  @Column({
-    type: 'enum',
-    enum: PaymentStatus,
-  })
+  @Column({ type: 'enum', enum: PaymentStatus })
   status: PaymentStatus;
 
   @CreateDateColumn()

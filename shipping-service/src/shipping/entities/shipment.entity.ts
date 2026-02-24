@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+// shipment.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -19,7 +17,7 @@ export class ShipmentEntity {
   orderId: string;
 
   @Column()
-  status: string; // SHIPPED | DELIVERED | FAILED
+  status: string;
 
   @Column()
   trackingNumber: string;

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+// processed-order.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('processed_orders')
@@ -9,7 +9,6 @@ export class ProcessedOrderEntity {
   @Column({ unique: true })
   orderId: string;
 
-  // store order items snapshot from order.created
   @Column('jsonb', { nullable: true })
   items: any[];
 

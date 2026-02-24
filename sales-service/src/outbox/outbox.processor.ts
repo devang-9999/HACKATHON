@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AppDataSource } from '../config/datasource';
@@ -21,7 +22,10 @@ export class OutboxProcessor implements OnModuleInit {
     });
 
     for (const event of events) {
-      this.publisher.publish(event.type, event.payload);
+      this.publisher.publish(event.type, {
+        eventId: event.id,
+        payload: event.payload,
+      });
 
       event.processed = true;
       await repo.save(event);

@@ -19,11 +19,7 @@ export class Refund {
   @Column()
   customerId: string;
 
-  @Column({
-    type: 'numeric',
-    precision: 12,
-    scale: 2,
-  })
+  @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
 
   @CreateDateColumn()

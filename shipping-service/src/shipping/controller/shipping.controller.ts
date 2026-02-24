@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Controller, Get, Param, Post, Body, Patch } from '@nestjs/common';
 import { ShippingService } from '../service/shipping.service';
 

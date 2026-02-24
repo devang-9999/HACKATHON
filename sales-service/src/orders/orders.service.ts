@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable } from '@nestjs/common';
 import { AppDataSource } from '../config/datasource';
 import { OutboxEvent } from '../outbox/outbox.entity';
@@ -7,6 +5,8 @@ import { InboxEvent } from '../inbox/inbox.entity';
 import { OrdersGateway } from '../websocket/orders.gateway';
 import { Order } from './entities/order.entity';
 import { OrderStatus } from './entities/order.entity';
+import { v4 as uuid } from 'uuid';
+import { OrderEvent } from 'src/types/order-event.type';
 
 @Injectable()
 export class OrdersService {
@@ -26,8 +26,13 @@ export class OrdersService {
       await manager.save(order);
 
       await manager.save(OutboxEvent, {
+        id: uuid(),
         type: 'order.created',
-        payload: order,
+        payload: {
+          orderId: order.id,
+          customerId: order.customerId,
+          totalAmount: order.totalAmount,
+        },
       });
 
       this.gateway.orderCreated(order);
@@ -44,32 +49,32 @@ export class OrdersService {
     return this.orderRepo.find();
   }
 
-  async handleOrderBilled(event: any) {
-    await this.processEvent(event.id, async () => {
+  async handleOrderBilled(event: OrderEvent) {
+    await this.processEvent(event.eventId, async () => {
       await this.updateStatus(event.orderId, OrderStatus.BILLED);
     });
   }
 
-  async handlePaymentFailed(event: any) {
-    await this.processEvent(event.id, async () => {
+  async handlePaymentFailed(event: OrderEvent) {
+    await this.processEvent(event.eventId, async () => {
       await this.updateStatus(event.orderId, OrderStatus.FAILED);
     });
   }
 
-  async handleShippingCreated(event: any) {
-    await this.processEvent(event.id, async () => {
+  async handleShippingCreated(event: OrderEvent) {
+    await this.processEvent(event.eventId, async () => {
       await this.updateStatus(event.orderId, OrderStatus.SHIPPING);
     });
   }
 
-  async handleOrderCompleted(event: any) {
-    await this.processEvent(event.id, async () => {
+  async handleOrderCompleted(event: OrderEvent) {
+    await this.processEvent(event.eventId, async () => {
       await this.updateStatus(event.orderId, OrderStatus.COMPLETED);
     });
   }
 
-  async handleOrderRefunded(event: any) {
-    await this.processEvent(event.id, async () => {
+  async handleOrderRefunded(event: OrderEvent) {
+    await this.processEvent(event.eventId, async () => {
       await this.updateStatus(event.orderId, OrderStatus.REFUNDED);
     });
   }

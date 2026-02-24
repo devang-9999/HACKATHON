@@ -1,20 +1,23 @@
-import * as dotenv from 'dotenv';
+import 'dotenv/config';
 
-dotenv.config();
+const url = process.env.RABBITMQ_URL;
+const exchange = process.env.RABBITMQ_EXCHANGE;
+
+if (!url) throw new Error('RABBITMQ_URL not defined');
+if (!exchange) throw new Error('RABBITMQ_EXCHANGE not defined');
 
 export const rabbitmqConfig = {
-  url: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-
-  exchange: process.env.RABBITMQ_EXCHANGE || 'order_events',
-
+  url,
+  exchange,
   queues: {
-    billing: 'billing_queue',
+    billing: 'billing-service-queue',
+    sales: 'sales-service-queue',
   },
-
   routingKeys: {
     orderCreated: 'order.created',
     orderBilled: 'order.billed',
     paymentFailed: 'payment.failed',
+    orderRefundRequested: 'order.refund.requested',
     orderRefunded: 'order.refunded',
   },
 };
