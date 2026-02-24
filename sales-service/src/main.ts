@@ -17,5 +17,6 @@ async function bootstrap() {
   );
 
   await app.listen(3000);
+  console.log(`Billing Service running on port ${3000}`);
 }
 void bootstrap();

@@ -4,7 +4,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { Channel, ConsumeMessage } from 'amqplib';
-
 import { rabbitConfig } from '../config/rabbitmq.config';
 import { OrdersService } from '../orders/orders.service';
 import { OrderEvent } from '../types/order-event.type';
@@ -19,13 +18,10 @@ export class OrdersConsumer implements OnModuleInit {
     await this.connectWithRetry();
   }
 
-  // ---------------------------------------
-  // RETRY LOOP (CRITICAL FIX)
-  // ---------------------------------------
   private async connectWithRetry() {
     while (!this.channel) {
       try {
-        console.log('⏳ Sales consumer connecting to RabbitMQ...');
+        console.log(' Sales consumer connecting to RabbitMQ...');
 
         const conn = await amqp.connect(rabbitConfig.url);
         this.channel = await conn.createChannel();

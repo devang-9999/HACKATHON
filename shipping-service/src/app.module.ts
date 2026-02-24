@@ -1,15 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ShippingModule } from './shipping/shipping.module';
 
-// messaging entities (global DB tables)
 import { InboxEntity } from './messaging/inbox/inbox.entity';
 import { OutboxEntity } from './messaging/outbox/outbox.entity';
 
-// shipping entities
 import { ShipmentEntity } from './shipping/entities/shipment.entity';
 import { ShipmentItemEntity } from './shipping/entities/shipment-item.entity';
 import { InventoryEntity } from './shipping/entities/inventory.entity';

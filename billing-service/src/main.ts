@@ -18,10 +18,9 @@ async function bootstrap() {
       }),
     );
 
-    const port = process.env.PORT || 3000;
-    await app.listen(port);
+    await app.listen(4000);
 
-    console.log(`🚀 Billing Service running on port ${port}`);
+    console.log(`Billing Service running on port ${4000}`);
   } catch (error) {
     console.error(' Failed to start Billing Service');
     console.error(error);

@@ -72,7 +72,7 @@ services:
   billing-service:
     build: ./billing-service
     ports:
-      - "3002:3000"
+      - "4001:4000"
     env_file: ./billing-service/.env
     depends_on:
       - billing-db
@@ -81,7 +81,7 @@ services:
   shipping-service:
     build: ./shipping-service
     ports:
-      - "3003:3000"
+      - "5001:5000"
     env_file: ./shipping-service/.env
     depends_on:
       - shipping-db

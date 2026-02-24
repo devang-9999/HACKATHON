@@ -21,7 +21,7 @@ export class RabbitPublisher implements OnModuleInit, OnModuleDestroy {
 
     while (!this.channel) {
       try {
-        console.log('⏳ Sales connecting to RabbitMQ...');
+        console.log('Sales connecting to RabbitMQ...');
 
         const conn = await amqp.connect(url);
         const channel = await conn.createChannel();
