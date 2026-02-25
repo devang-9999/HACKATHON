@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable } from '@nestjs/common';
 import { RabbitMQService } from '../../messaging/rabbitmq/rabbitmq.service';
 import { InboxService } from '../../messaging/inbox/inbox.service';

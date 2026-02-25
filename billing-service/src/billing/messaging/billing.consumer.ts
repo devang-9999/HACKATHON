@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 // billing/messaging/billing.consumer.ts
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+
+import { Injectable } from '@nestjs/common';
 import { connect, Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 import { rabbitmqConfig } from '../../config/rabbitmq.config';
 import { BillingService } from '../billing.service';
@@ -25,6 +27,7 @@ export class BillingConsumer {
     while (!this.channel) {
       try {
         console.log('Billing consumer connecting to RabbitMQ...');
+
         this.connection = await connect(url);
         this.channel = await this.connection.createChannel();
 
@@ -37,12 +40,12 @@ export class BillingConsumer {
           { durable: true },
         );
 
-        // Bind all billing-related events
         await this.channel.bindQueue(
           q.queue,
           rabbitmqConfig.exchange,
           'order.created',
         );
+
         await this.channel.bindQueue(
           q.queue,
           rabbitmqConfig.exchange,
@@ -56,23 +59,33 @@ export class BillingConsumer {
           async (msg: ConsumeMessage | null) => {
             if (!msg || !this.channel) return;
 
-            try {
-              const message = JSON.parse(msg.content.toString());
-              const routingKey = msg.fields.routingKey;
+            const raw = msg.content.toString();
+            const routingKey = msg.fields.routingKey;
 
-              await this.billingService.processEvent(routingKey, message);
+            console.log('Received message:', raw);
+
+            try {
+              const parsed = JSON.parse(raw);
+
+              if (!parsed.eventId || !parsed.payload) {
+                throw new Error('Invalid event structure');
+              }
+
+              await this.billingService.processEvent(routingKey, parsed);
 
               this.channel.ack(msg);
             } catch (err) {
-              console.error('Billing event failed', err);
-              this.channel.nack(msg, false, true);
+              console.error('Billing event failed:', err);
+              console.error('Dropping invalid message:', raw);
+
+              this.channel.nack(msg, false, false);
             }
           },
         );
 
         console.log('Billing consumer started ');
       } catch (err) {
-        console.log('RabbitMQ not ready for billing — retry in 5s');
+        console.log('RabbitMQ not ready — retry in 5s');
         await new Promise((res) => setTimeout(res, 5000));
       }
     }

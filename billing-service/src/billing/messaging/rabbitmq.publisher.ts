@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// billing/messaging/rabbitmq.publisher.ts
+
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { connect, Channel, ChannelModel } from 'amqplib';
 import { rabbitmqConfig } from '../../config/rabbitmq.config';
@@ -30,30 +31,23 @@ export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
           durable: true,
         });
 
-        console.log('Billing RabbitMQ Publisher connected ✅');
-      } catch (err) {
-        console.log('Billing waiting for RabbitMQ... retry in 5s');
+        console.log('RabbitMQ Publisher connected ');
+      } catch {
+        console.log('Waiting for RabbitMQ... retry in 5s');
         await new Promise((res) => setTimeout(res, 5000));
       }
     }
   }
 
   async publish(routingKey: string, payload: unknown): Promise<boolean> {
-    if (!this.channel) {
-      await this.connect(); // auto connect if not ready
-    }
+    if (!this.channel) await this.connect();
+    if (!this.channel) return false;
 
-    if (!this.channel) {
-      console.warn('RabbitMQ still not connected');
-      return false;
-    }
+    const message = Buffer.from(JSON.stringify(payload));
 
-    return this.channel.publish(
-      rabbitmqConfig.exchange,
-      routingKey,
-      Buffer.from(JSON.stringify(payload)),
-      { persistent: true },
-    );
+    return this.channel.publish(rabbitmqConfig.exchange, routingKey, message, {
+      persistent: true,
+    });
   }
 
   async close(): Promise<void> {

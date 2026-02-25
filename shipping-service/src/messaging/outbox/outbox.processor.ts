@@ -21,7 +21,7 @@ export class OutboxProcessor {
       try {
         const success = await this.rabbitmq.publish(event.eventType, {
           eventId: event.eventId,
-          payload: event.payload,
+          payload: event.payload as Record<string, unknown>,
         });
 
         if (!success) {

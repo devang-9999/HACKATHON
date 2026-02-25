@@ -1,23 +1,25 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { RabbitMQService } from '../../messaging/rabbitmq/rabbitmq.service';
 import { InboxService } from '../../messaging/inbox/inbox.service';
 import { ShippingService } from '../service/shipping.service';
 
 @Injectable()
-export class OrderCreatedConsumer implements OnModuleInit {
+export class OrderCreatedConsumer {
   constructor(
     private readonly rabbitmq: RabbitMQService,
     private readonly inbox: InboxService,
     private readonly shippingService: ShippingService,
   ) {}
 
-  async onModuleInit() {
+  async start() {
     await this.rabbitmq.subscribe(
       'order.created',
       this.handleMessage.bind(this),
     );
+
+    console.log('Shipping consumer listening for order.created');
   }
 
   private async handleMessage(message: any, rawMsg: any) {

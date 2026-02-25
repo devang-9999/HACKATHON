@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { AppDataSource } from '../config/datasource';
 import { OutboxEvent } from './outbox.entity';
@@ -24,9 +25,9 @@ export class OutboxProcessor {
       if (success) {
         event.processed = true;
         await repo.save(event);
-        console.log('✅ Event dispatched:', event.type);
+        console.log(' Event dispatched:', event.type);
       } else {
-        console.log('❌ Publish failed, will retry later');
+        console.log(' Publish failed, will retry later');
       }
     }
   }

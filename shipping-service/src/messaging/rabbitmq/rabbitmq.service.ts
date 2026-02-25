@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { connect, Channel, ConsumeMessage } from 'amqplib';
 
@@ -14,9 +17,6 @@ export class RabbitMQService implements OnModuleInit {
     await this.ensureConnection();
   }
 
-  /* =========================================================
-     CONNECTION MANAGEMENT
-  ========================================================= */
   private async ensureConnection() {
     if (this.channel) return;
 
@@ -41,9 +41,6 @@ export class RabbitMQService implements OnModuleInit {
     }
   }
 
-  /* =========================================================
-     PUBLISH
-  ========================================================= */
   async publish(routingKey: string, message: any): Promise<boolean> {
     try {
       await this.ensureConnection();
@@ -61,10 +58,6 @@ export class RabbitMQService implements OnModuleInit {
       return false;
     }
   }
-
-  /* =========================================================
-     SUBSCRIBE
-  ========================================================= */
   async subscribe(
     routingKey: string,
     handler: (msg: any, rawMsg: ConsumeMessage) => Promise<void>,
@@ -91,10 +84,6 @@ export class RabbitMQService implements OnModuleInit {
 
     console.log(`Subscribed to ${routingKey}`);
   }
-
-  /* =========================================================
-     ACK / NACK
-  ========================================================= */
   ack(msg: ConsumeMessage) {
     this.channel.ack(msg);
   }

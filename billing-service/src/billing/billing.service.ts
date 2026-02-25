@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import * as crypto from 'crypto';
 
 import { Account } from './entities/account.entity';
 import { Payment, PaymentStatus } from './entities/payment.entity';
@@ -13,16 +13,14 @@ import { OutboxEvent } from './outbox/outbox.entity';
 export class BillingService {
   constructor(private readonly dataSource: DataSource) {}
 
-  /* =========================================================
-     PUBLIC EVENT ENTRY POINT (called by Rabbit consumer)
-  ========================================================= */
   async processEvent(routingKey: string, message: any): Promise<void> {
     const { eventId, payload } = message;
+
+    if (!eventId || !payload) throw new Error('Invalid event envelope');
 
     await this.dataSource.transaction(async (manager) => {
       const inboxRepo = manager.getRepository(InboxEvent);
 
-      // Idempotency check
       const exists = await inboxRepo.findOne({ where: { eventId } });
       if (exists) {
         console.log('Duplicate event ignored:', eventId);
@@ -37,7 +35,6 @@ export class BillingService {
         await this.handleRefundRequested(manager, payload);
       }
 
-      // mark processed
       await inboxRepo.save({
         eventId,
         eventType: routingKey,
@@ -45,9 +42,6 @@ export class BillingService {
     });
   }
 
-  /* =========================================================
-     ORDER CREATED → PROCESS PAYMENT
-  ========================================================= */
   private async handleOrderCreated(manager: EntityManager, event: any) {
     const { orderId, customerId, totalAmount } = event;
 
@@ -64,7 +58,6 @@ export class BillingService {
     }
 
     if (Number(account.balance) < Number(totalAmount)) {
-      // PAYMENT FAILED
       await manager.save(
         manager.create(Payment, {
           orderId,
@@ -85,7 +78,6 @@ export class BillingService {
       return;
     }
 
-    // PAYMENT SUCCESS
     account.balance -= Number(totalAmount);
     await manager.save(account);
 
@@ -108,10 +100,8 @@ export class BillingService {
     console.log('Payment successful');
   }
 
-  /* =========================================================
-     REFUND REQUESTED
-  ========================================================= */
   private async handleRefundRequested(manager: EntityManager, event: any) {
+    console.log(event);
     const { orderId } = event;
 
     console.log('Processing refund for order:', orderId);
@@ -133,7 +123,8 @@ export class BillingService {
     });
 
     if (!account) throw new Error('Account not found');
-
+    console.log(account.balance);
+    console.log(payment.amount);
     account.balance += Number(payment.amount);
     await manager.save(account);
 
@@ -158,9 +149,6 @@ export class BillingService {
     console.log('Refund completed');
   }
 
-  /* =========================================================
-     OUTBOX WRITER (transactional)
-  ========================================================= */
   private async writeOutbox(
     manager: EntityManager,
     eventType: string,

@@ -11,4 +11,4 @@ async function run() {
   await app.close();
 }
 
-run();
+void run();

@@ -1,16 +1,19 @@
 // src/billing/billing.controller.ts
+
 import { Controller, Get, Param, Post, Body, Delete } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as crypto from 'crypto';
 
 import { BillingService } from './billing.service';
+import { RabbitMQPublisher } from './messaging/rabbitmq.publisher';
 import { Account } from './entities/account.entity';
-import { RefundDto } from './dto/redund.dto';
+import { RefundDto } from './dto/refund.dto';
 
 @Controller('billing')
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,
+    private readonly publisher: RabbitMQPublisher,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -27,12 +30,12 @@ export class BillingController {
 
   @Post('refunds')
   async refund(@Body() dto: RefundDto) {
-    await this.billingService.processEvent('order.refund.requested', {
+    await this.publisher.publish('order.refund.requested', {
       eventId: crypto.randomUUID(),
-      ...dto,
+      payload: dto,
     });
 
-    return { message: 'Refund processed' };
+    return { message: 'Refund requested' };
   }
 
   @Delete('reset')
@@ -54,6 +57,7 @@ export class BillingController {
     const existing = await repo.findOne({
       where: { customerId: body.customerId },
     });
+
     if (existing) return existing;
 
     const account = repo.create(body);

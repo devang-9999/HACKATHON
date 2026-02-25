@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from 'src/app.module';
 import { OutboxProcessor } from 'src/messaging/outbox/outbox.processor';
@@ -11,4 +12,7 @@ async function run() {
   await app.close();
 }
 
-run();
+run().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

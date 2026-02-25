@@ -9,4 +9,4 @@ async function run() {
   await consumer.start();
 }
 
-run();
+void run();

@@ -23,6 +23,7 @@ import { OutboxEntity } from '../messaging/outbox/outbox.entity';
 
 import { InboxService } from '../messaging/inbox/inbox.service';
 import { InboxEntity } from 'src/messaging/inbox/inbox.entity';
+import { OrderCreatedConsumer } from './consumers/order-created.consumer';
 
 @Module({
   imports: [
@@ -32,9 +33,9 @@ import { InboxEntity } from 'src/messaging/inbox/inbox.entity';
       InventoryEntity,
       ProcessedOrderEntity,
       OutboxEntity,
-      InboxEntity
+      InboxEntity,
     ]),
-    RabbitMQModule, // optional if you exported service from here
+    RabbitMQModule,
   ],
 
   controllers: [ShippingController],
@@ -45,14 +46,13 @@ import { InboxEntity } from 'src/messaging/inbox/inbox.entity';
     InventoryService,
     ShippingPublisher,
 
-    // ⭐ messaging
     RabbitMQService,
     OutboxService,
     OutboxProcessor,
     InboxService,
 
-    // ⭐ consumer
     OrderBilledConsumer,
+    OrderCreatedConsumer,
   ],
 })
 export class ShippingModule {}
