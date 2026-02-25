@@ -44,13 +44,13 @@ export class RabbitPublisher implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  publish(event: string, payload: any) {
+  publish(event: string, payload: any): boolean {
     if (!this.channel) {
-      console.warn('⚠ RabbitMQ not connected — event skipped');
-      return;
+      console.warn('RabbitMQ not connected');
+      return false;
     }
 
-    this.channel.publish(
+    return this.channel.publish(
       rabbitConfig.exchange,
       event,
       Buffer.from(JSON.stringify(payload)),

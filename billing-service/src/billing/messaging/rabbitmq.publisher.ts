@@ -38,17 +38,22 @@ export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  publish(routingKey: string, payload: unknown): void {
+  async publish(routingKey: string, payload: unknown): Promise<boolean> {
     if (!this.channel) {
-      console.warn('⚠ RabbitMQ not connected — event skipped');
-      return;
+      await this.connect(); // auto connect if not ready
     }
 
-    const message = Buffer.from(JSON.stringify(payload));
+    if (!this.channel) {
+      console.warn('RabbitMQ still not connected');
+      return false;
+    }
 
-    this.channel.publish(rabbitmqConfig.exchange, routingKey, message, {
-      persistent: true,
-    });
+    return this.channel.publish(
+      rabbitmqConfig.exchange,
+      routingKey,
+      Buffer.from(JSON.stringify(payload)),
+      { persistent: true },
+    );
   }
 
   async close(): Promise<void> {

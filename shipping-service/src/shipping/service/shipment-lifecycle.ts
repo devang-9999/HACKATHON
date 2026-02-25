@@ -5,12 +5,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ShipmentEntity } from '../entities/shipment.entity';
 import { ShipmentItemEntity } from '../entities/shipment-item.entity';
+import { ShippingPublisher } from '../publishers/shipping.publisher';
 
 @Injectable()
 export class ShipmentLifecycleService {
   constructor(
     @InjectRepository(ShipmentEntity)
     private shipmentRepo: Repository<ShipmentEntity>,
+     private readonly publisher: ShippingPublisher,
   ) {}
 
   createShipmentEntity(orderId: string, items: any[]) {
@@ -30,14 +32,15 @@ export class ShipmentLifecycleService {
   }
 
   async updateStatus(orderId: string, status: string) {
-    const shipment = await this.shipmentRepo.findOne({
-      where: { orderId },
-    });
-
+    const shipment = await this.shipmentRepo.findOne({ where: { orderId } });
     if (!shipment) throw new NotFoundException('Shipment not found');
 
     shipment.status = status;
     await this.shipmentRepo.save(shipment);
+
+    if (status === 'DELIVERED') {
+      await this.publisher.publishOrderCompleted({ orderId });
+    }
 
     return shipment;
   }

@@ -1,52 +1,43 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import * as crypto from 'crypto';
 
-import { OutboxEvent } from './outbox/outbox.entity';
-import { InboxEvent } from './inbox/inbox.entity';
 import { Account } from './entities/account.entity';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { Refund } from './entities/refund.entity';
+
+import { InboxEvent } from './inbox/inbox.entity';
+import { OutboxEvent } from './outbox/outbox.entity';
 
 @Injectable()
 export class BillingService {
   constructor(private readonly dataSource: DataSource) {}
 
-  private async writeOutbox(
-    manager: EntityManager,
-    eventType: string,
-    payload: any,
-  ) {
-    await manager.save(
-      manager.create(OutboxEvent, {
-        eventType,
-        payload,
-        processed: false,
-      }),
-    );
-  }
-
+  /* =========================================================
+     PUBLIC EVENT ENTRY POINT (called by Rabbit consumer)
+  ========================================================= */
   async processEvent(routingKey: string, message: any): Promise<void> {
     const { eventId, payload } = message;
 
     await this.dataSource.transaction(async (manager) => {
       const inboxRepo = manager.getRepository(InboxEvent);
 
+      // Idempotency check
       const exists = await inboxRepo.findOne({ where: { eventId } });
       if (exists) {
-        console.log('⚠ Duplicate event ignored', eventId);
+        console.log('Duplicate event ignored:', eventId);
         return;
       }
 
       if (routingKey === 'order.created') {
-        await this.handleOrderCreatedTx(manager, payload);
+        await this.handleOrderCreated(manager, payload);
       }
 
       if (routingKey === 'order.refund.requested') {
-        await this.handleRefundRequestedTx(manager, payload);
+        await this.handleRefundRequested(manager, payload);
       }
 
+      // mark processed
       await inboxRepo.save({
         eventId,
         eventType: routingKey,
@@ -54,8 +45,13 @@ export class BillingService {
     });
   }
 
-  private async handleOrderCreatedTx(manager: EntityManager, event: any) {
+  /* =========================================================
+     ORDER CREATED → PROCESS PAYMENT
+  ========================================================= */
+  private async handleOrderCreated(manager: EntityManager, event: any) {
     const { orderId, customerId, totalAmount } = event;
+
+    console.log('Processing payment for order:', orderId);
 
     let account = await manager.findOne(Account, {
       where: { customerId },
@@ -68,7 +64,7 @@ export class BillingService {
     }
 
     if (Number(account.balance) < Number(totalAmount)) {
-      // Payment failed
+      // PAYMENT FAILED
       await manager.save(
         manager.create(Payment, {
           orderId,
@@ -80,17 +76,16 @@ export class BillingService {
       );
 
       await this.writeOutbox(manager, 'payment.failed', {
-        eventId: crypto.randomUUID(),
         orderId,
         customerId,
         amount: totalAmount,
       });
 
-      console.log('⚠ Payment failed');
+      console.log('Payment failed');
       return;
     }
 
-    // Payment success
+    // PAYMENT SUCCESS
     account.balance -= Number(totalAmount);
     await manager.save(account);
 
@@ -105,37 +100,31 @@ export class BillingService {
     );
 
     await this.writeOutbox(manager, 'order.billed', {
-      eventId: crypto.randomUUID(),
       orderId,
       customerId,
       amount: totalAmount,
     });
 
-    console.log('✅ Payment successful');
+    console.log('Payment successful');
   }
 
-  private async handleRefundRequestedTx(manager: EntityManager, event: any) {
+  /* =========================================================
+     REFUND REQUESTED
+  ========================================================= */
+  private async handleRefundRequested(manager: EntityManager, event: any) {
     const { orderId } = event;
-    console.log('Refund requested for order:', orderId);
+
+    console.log('Processing refund for order:', orderId);
 
     const payment = await manager.findOne(Payment, {
       where: { orderId },
       lock: { mode: 'pessimistic_write' },
     });
 
-    if (!payment) {
-      throw new Error(`Payment not found for order ${orderId}`);
-    }
-
-    if (payment.status === PaymentStatus.REFUNDED) {
-      console.log('⚠ Payment already refunded:', orderId);
-      return;
-    }
+    if (!payment) throw new Error('Payment not found');
 
     if (payment.status !== PaymentStatus.SUCCESS) {
-      throw new Error(
-        `Payment not eligible for refund. Status = ${payment.status}`,
-      );
+      throw new Error('Payment not eligible for refund');
     }
 
     const account = await manager.findOne(Account, {
@@ -143,14 +132,9 @@ export class BillingService {
       lock: { mode: 'pessimistic_write' },
     });
 
-    if (!account) {
-      throw new Error(`Account not found for payment ${payment.accountId}`);
-    }
+    if (!account) throw new Error('Account not found');
 
-    const oldBalance = Number(account.balance);
-    const refundAmount = Number(payment.amount);
-
-    account.balance = oldBalance + refundAmount;
+    account.balance += Number(payment.amount);
     await manager.save(account);
 
     payment.status = PaymentStatus.REFUNDED;
@@ -166,12 +150,28 @@ export class BillingService {
     );
 
     await this.writeOutbox(manager, 'order.refunded', {
-      eventId: crypto.randomUUID(),
       orderId,
       customerId: payment.customerId,
       amount: payment.amount,
     });
 
-    console.log('✅ Refund completed successfully');
+    console.log('Refund completed');
+  }
+
+  /* =========================================================
+     OUTBOX WRITER (transactional)
+  ========================================================= */
+  private async writeOutbox(
+    manager: EntityManager,
+    eventType: string,
+    payload: any,
+  ) {
+    const event = manager.create(OutboxEvent, {
+      eventType,
+      payload,
+      processed: false,
+    });
+
+    await manager.save(event);
   }
 }

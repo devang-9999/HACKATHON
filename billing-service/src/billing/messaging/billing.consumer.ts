@@ -8,19 +8,11 @@ import { rabbitmqConfig } from '../../config/rabbitmq.config';
 import { BillingService } from '../billing.service';
 
 @Injectable()
-export class BillingConsumer implements OnModuleInit, OnModuleDestroy {
+export class BillingConsumer {
   private connection?: ChannelModel;
   private channel?: Channel;
 
   constructor(private readonly billingService: BillingService) {}
-
-  async onModuleInit() {
-    await this.start();
-  }
-
-  async onModuleDestroy() {
-    await this.close();
-  }
 
   async start(): Promise<void> {
     if (this.connection && this.channel) return;

@@ -1,42 +1,40 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OutboxService } from './outbox.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 
 @Injectable()
-export class OutboxProcessor implements OnModuleInit {
+export class OutboxProcessor {
   constructor(
     private readonly outbox: OutboxService,
     private readonly rabbitmq: RabbitMQService,
   ) {}
 
-  onModuleInit() {
-    void this.start();
-  }
+  async process() {
+    const events = await this.outbox.getUnprocessedEvents();
 
-  private async start() {
-    while (true) {
-      try {
-        const events = await this.outbox.getUnprocessedEvents();
-
-        for (const event of events) {
-          await this.rabbitmq.publish(event.eventType, {
-            eventId: event.eventId,
-            eventType: event.eventType,
-            payload: event.payload,
-          });
-
-          await this.outbox.markProcessed(event.id);
-        }
-      } catch (err) {
-        console.error('Outbox processor error', err);
-      }
-
-      await this.sleep(3000);
+    if (events.length === 0) {
+      console.log('No shipping outbox events');
+      return;
     }
-  }
 
-  private sleep(ms: number) {
-    return new Promise((r) => setTimeout(r, ms));
+    for (const event of events) {
+      try {
+        const success = await this.rabbitmq.publish(event.eventType, {
+          eventId: event.eventId,
+          payload: event.payload,
+        });
+
+        if (!success) {
+          console.log('Publish failed — will retry later');
+          continue;
+        }
+
+        await this.outbox.markProcessed(event.id);
+
+        console.log('Shipping event published:', event.eventType);
+      } catch (err) {
+        console.error('Shipping publish error', err);
+      }
+    }
   }
 }

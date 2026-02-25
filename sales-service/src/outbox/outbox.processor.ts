@@ -1,17 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-misused-promises */
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AppDataSource } from '../config/datasource';
 import { OutboxEvent } from './outbox.entity';
 import { RabbitPublisher } from '../messaging/rabbitmq.publisher';
 
 @Injectable()
-export class OutboxProcessor implements OnModuleInit {
+export class OutboxProcessor {
   constructor(private publisher: RabbitPublisher) {}
-
-  onModuleInit() {
-    setInterval(() => this.process(), 3000);
-  }
 
   async process() {
     const repo = AppDataSource.getRepository(OutboxEvent);
@@ -22,13 +16,18 @@ export class OutboxProcessor implements OnModuleInit {
     });
 
     for (const event of events) {
-      this.publisher.publish(event.type, {
+      const success = this.publisher.publish(event.type, {
         eventId: event.id,
         payload: event.payload,
       });
 
-      event.processed = true;
-      await repo.save(event);
+      if (success) {
+        event.processed = true;
+        await repo.save(event);
+        console.log('✅ Event dispatched:', event.type);
+      } else {
+        console.log('❌ Publish failed, will retry later');
+      }
     }
   }
 }

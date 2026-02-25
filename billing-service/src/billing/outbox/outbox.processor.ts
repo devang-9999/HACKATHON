@@ -1,48 +1,38 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { OutboxEvent } from './outbox.entity';
-import { RabbitMQPublisher } from 'src/billing/messaging/rabbitmq.publisher';
-
+import { RabbitMQPublisher } from '../messaging/rabbitmq.publisher';
 @Injectable()
-export class OutboxProcessor implements OnModuleInit {
-  private publisher = new RabbitMQPublisher();
+export class OutboxProcessor {
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly publisher: RabbitMQPublisher,
+  ) {}
 
-  constructor(private readonly dataSource: DataSource) {}
+ async process(): Promise<void> {
+  const repo = this.dataSource.getRepository(OutboxEvent);
 
-  async onModuleInit() {
-    await this.publisher.connect();
+  const events = await repo.find({
+    where: { processed: false },
+    take: 20,
+    order: { createdAt: 'ASC' },
+  });
 
-    setInterval(async () => {
-      await this.processOutbox();
-    }, 5000);
-
-    console.log('Outbox processor started');
+  if (events.length === 0) {
+    console.log('No billing outbox events');
+    return;
   }
 
-  async processOutbox() {
-    const repo = this.dataSource.getRepository(OutboxEvent);
-
-    const events = await repo.find({
-      where: { processed: false },
-      take: 50,
+  for (const event of events) {
+    const success = await this.publisher.publish(event.eventType, {
+      eventId: event.id,
+      payload: event.payload,
     });
 
-    for (const event of events) {
-      try {
-        this.publisher.publish(event.eventType, {
-          eventId: event.id,
-          payload: event.payload,
-        });
-
-        event.processed = true;
-        await repo.save(event);
-
-        console.log(`✅ Outbox event published ${event.id}`);
-      } catch (err) {
-        console.error('❌ Outbox publish failed', err);
-      }
+    if (success) {
+      event.processed = true;
+      await repo.save(event);
+      console.log('Billing event published:', event.eventType);
     }
   }
-}
+}}
